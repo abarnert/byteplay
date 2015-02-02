@@ -67,7 +67,7 @@ if python_version in ('2.4', '2.5'):
                   .format(python_version))
 elif python_version not in ('2.6', '2.7', '3.3', '3.4'):
     warnings.warn("byteplay doesn't support Python version "+python_version)
-
+    
 class Opcode(int):
     """An int which represents an opcode - has a nicer repr."""
     def __repr__(self):
@@ -109,6 +109,9 @@ haslocal = set(Opcode(x) for x in opcode.haslocal)
 hascompare = set(Opcode(x) for x in opcode.hascompare)
 hasfree = set(Opcode(x) for x in opcode.hasfree)
 hascode = set([MAKE_FUNCTION, MAKE_CLOSURE])
+
+# Python 3.3+ pushes the qualname onto the stack after the code.
+codeoffset = -2 if python_version >= '3.3' else -1
 
 class _se:
     """Quick way of defining static stack effects of opcodes"""
@@ -370,10 +373,14 @@ class Code(object):
                 code.append((SetLineno, linestarts[i]))
             i += 1
             if op in hascode:
-                lastop, lastarg = code[-1]
+                lastop, lastarg = code[codeoffset]
                 if lastop != LOAD_CONST:
                     raise ValueError("%s should be preceded by LOAD_CONST code" % op)
-                code[-1] = (LOAD_CONST, Code.from_code(lastarg))
+                try:
+                    code[codeoffset] = (LOAD_CONST, Code.from_code(lastarg))
+                except:
+                    print('Failed on {0} after {1} {2}'.format(op, lastop, lastarg))
+                    raise
             if op not in hasarg:
                 code.append((op, None))
             else:
@@ -756,7 +763,7 @@ class Code(object):
             else:
                 if op in hasconst:
                     if isinstance(arg, Code) and i < len(self.code)-1 and \
-                       self.code[i+1][0] in hascode:
+                       self.code[i-codeoffset][0] in hascode:
                         arg = arg.to_code()
                     arg = index(co_consts, arg, operator.is_)
                 elif op in hasname:
@@ -934,7 +941,12 @@ def recompile(filename):
     fc.write(struct.pack('<l', timestamp))
     if python_version >= '3':
         fc.write(struct.pack('<l', sourcesize))
-    marshal.dump(codeobject2, fc)
+    try:
+        marshal.dump(codeobject2, fc)
+    except:
+        print(cod.code)
+        print('Failed on {0}'.format(type(codeobject2)))
+        raise
     fc.flush()
     fc.seek(0, 0)
     fc.write(imp.get_magic())
@@ -949,7 +961,11 @@ def recompile_all(path):
                 if name.endswith('.py'):
                     filename = os.path.abspath(os.path.join(root, name))
                     print(filename, file=sys.stderr)
-                    recompile(filename)
+                    try:
+                        recompile(filename)
+                    except:
+                        print('Failed on {0}'.format(filename))
+                        raise
     else:
         filename = os.path.abspath(path)
         recompile(filename)
