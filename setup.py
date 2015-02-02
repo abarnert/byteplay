@@ -5,22 +5,31 @@ from byteplay import __version__ as lib_version
 
 setup(
        name = 'byteplay',
-       author='Noam Yorav-Raphael',
-       author_email='noamraph@gmail.com',
-       url='http://code.google.com/p/byteplay',
-       download_url='http://code.google.com/p/byteplay/downloads/list',
+       author='Andrew Barnert',
+       author_email='abarnert@yahoo.com',
+       url='https://github.com/abarnert/byteplay',
        version = lib_version,
        py_modules = ['byteplay'],
        zip_safe = True,
        license='LGPL',
        description='bytecode manipulation library',
-       long_description = """byteplay lets you convert Python code objects into equivalent objects which are easy to play with, and lets you convert those objects back into living Python code objects. It's useful for applying crazy transformations on Python functions, and is also useful in learning Python byte code intricacies. It currently works with Python 2.4 and up.
+       long_description = """byteplay lets you convert Python code objects into equivalent objects which are easy to play with, and lets you convert those objects back into living Python code objects. It's useful for applying crazy transformations on Python functions, and is also useful in learning Python byte code intricacies. It currently works with Python 2.6 or 3.3 and up.
 
 byteplay Module Documentation
 =============================
 
 About byteplay
 --------------
+
+This module is based on byteplay 0.2 by Noam Yorav-Raphael
+(noamraph@gmail.com), but updated for Python 3.x compatibility.
+All 3.x-specific bugs (or new-introduced 2.x-specific bugs) are
+the fault of Andrew Barnert; nearly all intrinsic coolness of the
+module belongs to Noam Yorav-Raphael.
+
+The rest of this description comes from version 0.2. This means
+the URLs are not correct, and neither is the version information
+(2.4-2.5 no longer work).
 
 byteplay is a module which lets you easily play with Python bytecode. I wrote
 it because I needed to manipulate Python bytecode, but didn't find any suitable
