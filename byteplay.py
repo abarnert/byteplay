@@ -215,6 +215,12 @@ def getse(op, arg=None):
         return (nextra + 1 + (arg & 0xFF) + 2*((arg >> 8) & 0xFF),
                 1)
 
+    def get_closure_tup(arg):
+        posorkw = arg & 0xFF
+        kwonly = ((arg>>8) & 0xFF)
+        annot = ((arg>>16) & 0x7FFF)
+        return posorkw + 2*kwonly + annot + (1 if annot else 0)
+    
     def get_unpack_tup(arg):
         if arg > 0xFFFF:
             raise ValueError("Can only split a two-byte argument")
@@ -245,9 +251,9 @@ def getse(op, arg=None):
     elif op == RAISE_VARARGS:
         return 1+arg, 1
     elif op == MAKE_FUNCTION:
-        return codeoffset+arg, 1
+        return codeoffset+get_closure_tup(arg), 1
     elif op == MAKE_CLOSURE:
-        return codeoffset+1+arg, 1
+        return codeoffset+1+get_closure_tup(arg), 1
     elif python_version >= '3' and op == UNPACK_EX:
         return get_unpack_tup(arg)
     else:
