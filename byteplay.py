@@ -535,6 +535,7 @@ class Code(object):
                     stacks[pos] = curstack
                 else:
                     if stacks[pos] != curstack:
+                        print('Handling {0} {1} at pos {2}'.format(op, arg, pos))
                         print('{0}[{1}] == {2} != {3}'.format(stacks, pos, stacks[pos], curstack))
                         raise ValueError("Inconsistent code")
                     return
@@ -591,28 +592,15 @@ class Code(object):
                 pass
 
             elif op == CONTINUE_LOOP:
-                # TODO: This does not work if the continue comes within
-                # both a with and a try (in both 2.6 and 2.7/3.x). For example:
-                #    for spam in eggs:
-                #        try:
-                #            with bacon:
-                #                continue
-                #        finally:
-                #            pass
-                # This causes the stdlib test to fail on mimetypes.py on
-                # 2.7 and 3.4.
-                
                 # CONTINUE_LOOP jumps to the beginning of a loop which should
-                # already ave been discovered, but we verify anyway.
+                # already have been discovered, but we verify anyway.
                 # It pops a block.
-                if python_version == '2.6':
-                  pos, stack = label_pos[arg], curstack[:-1]
-                  if stacks[pos] != stack: #this could be a loop with a 'with' inside
-                    yield pos, stack[:-1] + (stack[-1]-1,)
-                  else:
-                    yield pos, stack
+                pos, stack = label_pos[arg], curstack[:-1]
+                if stacks[pos] == stack[:-1]:
+                    # handle loop with a 'with' inside
+                    yield pos, stack[:-1]                      
                 else:
-                  yield label_pos[arg], curstack[:-1]
+                    yield pos, stack
 
             elif op == SETUP_LOOP:
                 # We continue with a new block.
