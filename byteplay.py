@@ -111,7 +111,7 @@ hasfree = set(Opcode(x) for x in opcode.hasfree)
 hascode = set([MAKE_FUNCTION, MAKE_CLOSURE])
 
 # Python 3.3+ pushes the qualname onto the stack after the code.
-codeoffset = -2 if python_version >= '3.3' else -1
+codeoffset = 2 if python_version >= '3.3' else 1
 
 class _se:
     """Quick way of defining static stack effects of opcodes"""
@@ -228,7 +228,7 @@ def getse(op, arg=None):
         elif op == CALL_FUNCTION_VAR_KW:
             return get_func_tup(arg, 2)
 
-    elif op == BUILD_TUPLE:
+    if op == BUILD_TUPLE:
         return arg, 1
     elif op == BUILD_LIST:
         return arg, 1
@@ -243,9 +243,9 @@ def getse(op, arg=None):
     elif op == RAISE_VARARGS:
         return 1+arg, 1
     elif op == MAKE_FUNCTION:
-        return 1+arg, 1
+        return codeoffset+arg, 1
     elif op == MAKE_CLOSURE:
-        return 2+arg, 1
+        return codeoffset+1+arg, 1
     elif python_version >= '3' and op == UNPACK_EX:
         return get_unpack_tup(arg)
     else:
@@ -373,11 +373,11 @@ class Code(object):
                 code.append((SetLineno, linestarts[i]))
             i += 1
             if op in hascode:
-                lastop, lastarg = code[codeoffset]
+                lastop, lastarg = code[-codeoffset]
                 if lastop != LOAD_CONST:
                     raise ValueError("%s should be preceded by LOAD_CONST code" % op)
                 try:
-                    code[codeoffset] = (LOAD_CONST, Code.from_code(lastarg))
+                    code[-codeoffset] = (LOAD_CONST, Code.from_code(lastarg))
                 except:
                     print('Failed on {0} after {1} {2}'.format(op, lastop, lastarg))
                     raise
@@ -525,6 +525,7 @@ class Code(object):
             If the given position was already explored, nothing will be yielded.
             """
             op, arg = code[pos]
+            print(pos, op, arg)
 
             if isinstance(op, Label):
                 # We should check if we already reached a node only if it is
@@ -535,12 +536,14 @@ class Code(object):
                     stacks[pos] = curstack
                 else:
                     if stacks[pos] != curstack:
+                        print('{}[{}] == {} != {}'.format(stacks, pos, stacks[pos], curstack))
                         raise ValueError("Inconsistent code")
                     return
 
             def newstack(n):
                 # Return a new stack, modified by adding n elements to the last
                 # block
+                print('newstack({} on {})'.format(n, curstack))
                 if curstack[-1] + n < 0:
                     raise ValueError("Popped a non-existing element")
                 return curstack[:-1] + (curstack[-1]+n,)
@@ -654,11 +657,14 @@ class Code(object):
                 # TODO: is this correct? In 2.7, you get a SETUP_FINALLY
                 # around the whole block (including any SETUP_EXCEPT), then
                 # the END_FINALLY cleans up. In 3.x, inside a SETUP_EXCEPT
-                # target, you get a SETUP_FINALLY, POP_BLOCK, POP_EXCEPT.
-                # (And no POP_BLOCK after the END_FINALLY. So verify that
-                # END_FINALLY is right, too...)
-                yield pos+1, newstack(-3)
-                  
+                # target, you can get a SETUP_FINALLY, POP_BLOCK, POP_EXCEPT,
+                # or just a POP_EXCEPT. (And, either way, no POP_BLOCK after
+                # the END_FINALLY. So verify that END_FINALLY is right, too...)
+                try:
+                    yield pos+1, newstack(0)
+                except:
+                    print('Failed on {}'.format(curstack))
+                    raise
             else:
                 assert False, "Unhandled opcode: %r" % op
 
@@ -763,8 +769,13 @@ class Code(object):
             else:
                 if op in hasconst:
                     if isinstance(arg, Code) and i < len(self.code)-1 and \
-                       self.code[i-codeoffset][0] in hascode:
-                        arg = arg.to_code()
+                       self.code[i+codeoffset][0] in hascode:
+                        try:
+                            arg = arg.to_code()
+                        except:
+                            print(arg.code)
+                            print('Failed to compile sub-code')
+                            raise
                     arg = index(co_consts, arg, operator.is_)
                 elif op in hasname:
                     arg = index(co_names, arg)
@@ -919,9 +930,9 @@ def recompile(filename):
     if codestring and codestring[-1] != '\n':
         codestring = codestring + '\n'
     try:
-        codeobject = compile(codestring, filename, 'exec')
-    except SyntaxError:
-        print("Skipping %s - syntax error." % filename, file=sys.stderr)
+        codeobject = compile(codestring, filename, 'exec', 0, 1)
+    except SyntaxError as e:
+        print("Skipping %s - syntax error: %s." % (filename, e), file=sys.stderr)
         return
     cod = Code.from_code(codeobject)
     message = "reassembled %r imported.\n" % filename
@@ -935,7 +946,12 @@ def recompile(filename):
         (CALL_FUNCTION, 1),
         (POP_TOP, None),
         ]
-    codeobject2 = cod.to_code()
+    try:
+        codeobject2 = cod.to_code()
+    except:
+        print(cod.code)
+        print('Failed to compile')
+        raise
     fc = open(cache_from_source(filename), 'wb')
     fc.write(b'\0\0\0\0')
     fc.write(struct.pack('<l', timestamp))
