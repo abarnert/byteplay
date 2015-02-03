@@ -58,6 +58,9 @@ if bytes is str:
 else:
     bord = int
 
+dprint = lambda *a: None
+#dprint = print
+    
 ######################################################################
 # Define opcodes and information about them
 
@@ -524,7 +527,7 @@ class Code(object):
             If the given position was already explored, nothing will be yielded.
             """
             op, arg = code[pos]
-            #print(pos, op, arg)
+            dprint(pos, op, arg)
 
             if isinstance(op, Label):
                 # We should check if we already reached a node only if it is
@@ -543,7 +546,7 @@ class Code(object):
             def newstack(n):
                 # Return a new stack, modified by adding n elements to the last
                 # block
-                #print('newstack({0} on {1})'.format(n, curstack))
+                dprint('newstack({0} on {1})'.format(n, curstack))
                 if curstack[-1] + n < 0:
                     raise ValueError("Popped a non-existing element")
                 return curstack[:-1] + (curstack[-1]+n,)
@@ -598,7 +601,12 @@ class Code(object):
                 pos, stack = label_pos[arg], curstack[:-1]
                 if stacks[pos] == stack[:-1]:
                     # handle loop with a 'with' inside
-                    yield pos, stack[:-1]                      
+                    yield pos, stack[:-1]
+                elif stacks[pos][:-1] == stack:
+                    # handle loop with a non-simple 'try' inside
+                    # (seems very hacky, but I'm not sure what's right)
+                    stacks[pos] = stacks[pos][:-1]
+                    yield pos, stack
                 else:
                     yield pos, stack
 
