@@ -63,7 +63,7 @@ else:
 
 python_version = '.'.join(str(x) for x in sys.version_info[:2])
 if python_version in ('2.4', '2.5'):
-    warnings.warn("byteplay 0.3+ doesn't support Python version {}; try 0.2"
+    warnings.warn("byteplay 0.3+ doesn't support Python version {0}; try 0.2"
                   .format(python_version))
 elif python_version not in ('2.6', '2.7', '3.3', '3.4'):
     warnings.warn("byteplay doesn't support Python version "+python_version)
@@ -524,7 +524,7 @@ class Code(object):
             If the given position was already explored, nothing will be yielded.
             """
             op, arg = code[pos]
-            print(pos, op, arg)
+            #print(pos, op, arg)
 
             if isinstance(op, Label):
                 # We should check if we already reached a node only if it is
@@ -535,14 +535,14 @@ class Code(object):
                     stacks[pos] = curstack
                 else:
                     if stacks[pos] != curstack:
-                        print('{}[{}] == {} != {}'.format(stacks, pos, stacks[pos], curstack))
+                        print('{0}[{1}] == {2} != {3}'.format(stacks, pos, stacks[pos], curstack))
                         raise ValueError("Inconsistent code")
                     return
 
             def newstack(n):
                 # Return a new stack, modified by adding n elements to the last
                 # block
-                print('newstack({} on {})'.format(n, curstack))
+                #print('newstack({0} on {1})'.format(n, curstack))
                 if curstack[-1] + n < 0:
                     raise ValueError("Popped a non-existing element")
                 return curstack[:-1] + (curstack[-1]+n,)
@@ -591,6 +591,17 @@ class Code(object):
                 pass
 
             elif op == CONTINUE_LOOP:
+                # TODO: This does not work if the continue comes within
+                # both a with and a try (in both 2.6 and 2.7/3.x). For example:
+                #    for spam in eggs:
+                #        try:
+                #            with bacon:
+                #                continue
+                #        finally:
+                #            pass
+                # This causes the stdlib test to fail on mimetypes.py on
+                # 2.7 and 3.4.
+                
                 # CONTINUE_LOOP jumps to the beginning of a loop which should
                 # already ave been discovered, but we verify anyway.
                 # It pops a block.
@@ -662,7 +673,7 @@ class Code(object):
                 try:
                     yield pos+1, newstack(0)
                 except:
-                    print('Failed on {}'.format(curstack))
+                    print('Failed on {0}'.format(curstack))
                     raise
             else:
                 assert False, "Unhandled opcode: %r" % op
@@ -914,7 +925,7 @@ def recompile(filename):
                 base, ext = os.path.splitext(base)
                 x, y = sys.version_info[:2]
                 p = os.path.join(dir, '__pycache__',
-                                 base+'.cpython-{}{}.pyc'.format(x, y))
+                                 base+'.cpython-{0}{1}.pyc'.format(x, y))
                 return p
 
     f = open(filename, 'U')
