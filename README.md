@@ -11,3 +11,10 @@ Support for Python 3.x was added by Andrew Barnert.
 Byteplay is pretty reliable - Python's complete test suite continues to pass 
 after you use byteplay to disassemble all the code in the standard library and 
 assemble it again!
+
+Well, that's with 2.5. With 2.6+, various things don't work right inside 
+certain combinations of try and with statements. For 2.x, only continue seems
+to be affected, and there's a hacky fix for that. For 3.x, there are additional
+problems with continue, again hackily fixed, and also for yield from, and
+possibly other things. At present, you can't even reassemble the entire stdlib
+(although it's pretty close).
