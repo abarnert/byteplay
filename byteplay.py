@@ -220,15 +220,14 @@ def getse(op, arg=None):
 
     if op == CALL_FUNCTION:
         return get_func_tup(arg, 0)
-    if python_version < '3':
-        if op == CALL_FUNCTION_VAR:
-            return get_func_tup(arg, 1)
-        elif op == CALL_FUNCTION_KW:
-            return get_func_tup(arg, 1)
-        elif op == CALL_FUNCTION_VAR_KW:
-            return get_func_tup(arg, 2)
+    elif op == CALL_FUNCTION_VAR:
+        return get_func_tup(arg,1)
+    elif op == CALL_FUNCTION_KW:
+        return get_func_tup(arg, 1)
+    elif op == CALL_FUNCTION_VAR_KW:
+        return get_func_tup(arg, 2)
 
-    if op == BUILD_TUPLE:
+    elif op == BUILD_TUPLE:
         return arg, 1
     elif op == BUILD_LIST:
         return arg, 1
